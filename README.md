@@ -1,66 +1,216 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Problem 1
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Main entities
 
-## About Laravel
+| Table                            | Main fields                                                                                                                | Description                                                                 |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| `oracle_hotels`                  | `id, hotel_code, name`                                                                                                     | Hotels from Oracle                                                          |
+| `oracle_roomtypes`               | `id, room_code, name`                                                                                                      | Room types from Oracle                                                      |
+| `oracle_hotel_roomtypes`         | `id, hotel_id, room_type_id`                                                                                               | Pivot table for oracle hotels and oracle room type tables                   |
+| `oracle_rates`                   | `id, rate_code, name`                                                                                                      | Rates from Oracle                                                           |
+| `oracle_hotel_rates`             | `id, hotel_id, rate_id`                                                                                                    | Pivot table for oracle hotels and oracle rate tables                        |
+| `oracle_room_type_rates`         | `id, room_type_id, rate_id`                                                                                                | Pivot table for oracle room type and oracle rate tables                     |
+| `oracle_room_counts`             | `id, hotel_id, room_type_id, availability_date, rooms_available`                                                           | Room availability from Oracle by date, per room                             |
+| `oracle_rate_prices`             | `id, hotel_id, room_type_id, rate_id, price_date, price, currency`                                                         | Store price for each rate per day                                           |
+| `oracle_restrictions`            | `id, restriction_code, name, restriction_type`                                                                             | Restrictions from Oracle                                                    |
+| `oracle_hotel_room_restrictions` | `id, hotel_id, room_type_id, restriction_id, date`                                                                         | Hotel room restrictions                                                     |
+| `oracle_promo_codes`             | `id, promo_code, name, discount_type, valid_from, valid_to`                                                                | Promos from Oracle                                                          |
+| `oracle_promo_code_rates`        | `id, promo_code_id, rate_id, hotel_id`                                                                                     | Pivot table for oracle promo codes and oracle rates and oracle hotels table |
+| `custom_room_restrictions`       | `id, hotel_id, room_type_id, max_adults, max_children, children_allowed, max_guests, closure_start_date, closure_end_date` | Custom restrictions table                                                   |
+| `price_modifiers`                | `id, hotel_id, rate_id, date, modifier_type, operation, price`                                                             | Price modifiers                                                             |
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 1. Database schema design
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+<details>
+<summary>Show/hide database schema design</summary>
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```sql
+CREATE TABLE oracle_hotels
+(
+    id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hotel_code VARCHAR(200) UNIQUE NOT NULL,
+    name       VARCHAR(255)        NOT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    INDEX      idx_hotel_code (hotel_code)
+);
 
-## Learning Laravel
+CREATE TABLE oracle_roomtypes
+(
+    id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    room_code  VARCHAR(50) UNIQUE NOT NULL,
+    name       VARCHAR(255)       NOT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    INDEX      idx_room_type_code (room_code)
+);
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+CREATE TABLE oracle_hotel_roomtypes
+(
+    hotel_id     BIGINT UNSIGNED,
+    room_type_id BIGINT UNSIGNED,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    PRIMARY KEY (hotel_id, roomtype_id),
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE
+);
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+CREATE TABLE oracle_rates
+(
+    id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    rate_code  VARCHAR(50) UNIQUE NOT NULL,
+    name       VARCHAR(255)       NOT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    INDEX      idx_rate_code (rate_code)
+);
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+CREATE TABLE oracle_hotel_rates
+(
+    hotel_id BIGINT UNSIGNED,
+    rate_id  BIGINT UNSIGNED,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    PRIMARY KEY (hotel_id, rate_id),
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (rate_id) REFERENCES oracle_rates (id) ON DELETE CASCADE
+);
 
-## Laravel Sponsors
+CREATE TABLE oracle_room_type_rates
+(
+    room_type_id BIGINT UNSIGNED,
+    rate_id      BIGINT UNSIGNED,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    PRIMARY KEY (room_type_id, rate_id),
+    FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE,
+    FOREIGN KEY (rate_id) REFERENCES oracle_rates (id) ON DELETE CASCADE
+);
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+CREATE TABLE oracle_room_counts
+(
+    id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hotel_id          BIGINT UNSIGNED,
+    room_type_id      BIGINT UNSIGNED,
+    availability_date DATE NOT NULL,
+    rooms_available   INT  NOT NULL,
+    created_at        TIMESTAMP NULL,
+    updated_at        TIMESTAMP NULL,
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE,
+    INDEX             idx_availability_date (availability_date)
+);
 
-### Premium Partners
+CREATE TABLE oracle_rate_prices
+(
+    id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hotel_id     BIGINT UNSIGNED,
+    room_type_id BIGINT UNSIGNED,
+    rate_id      BIGINT UNSIGNED,
+    price_date   DATE           NOT NULL,
+    price        DECIMAL(10, 2) NOT NULL,
+    currency     VARCHAR(3)     NOT NULL,
+    created_at   TIMESTAMP NULL,
+    updated_at   TIMESTAMP NULL,
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE,
+    FOREIGN KEY (rate_id) REFERENCES oracle_rates (id) ON DELETE CASCADE,
+    INDEX        idx_price_date (price_date)
+);
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+CREATE TABLE oracle_restrictions
+(
+    id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    restriction_code VARCHAR(200) UNIQUE NOT NULL,
+    name             VARCHAR(255)        NOT NULL,
+    restriction_type ENUM('room_closure', 'rate_closure')        NOT NULL,
+    created_at       TIMESTAMP NULL,
+    updated_at       TIMESTAMP NULL,
+    INDEX            idx_restriction_code (restriction_code),
+    INDEX            idx_restriction_type (restriction_type),
+);
 
-## Contributing
+CREATE TABLE oracle_hotel_room_restrictions
+(
+    id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hotel_id       BIGINT UNSIGNED,
+    room_type_id   BIGINT UNSIGNED,
+    restriction_id BIGINT UNSIGNED,
+    date           DATE NOT NULL,
+    created_at     TIMESTAMP NULL,
+    updated_at     TIMESTAMP NULL,
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE,
+    FOREIGN KEY (restriction_id) REFERENCES oracle_restrictions (id) ON DELETE CASCADE,
+    INDEX          idx_date (date)
+);
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+CREATE TABLE oracle_promo_codes
+(
+    id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    promo_code    VARCHAR(200) UNIQUE NOT NULL,
+    name          VARCHAR(255)        NOT NULL,
+    discount_type ENUM('percentage', 'fixed')        NOT NULL,
+    valid_from    DATE                NOT NULL,
+    valid_to      DATE                NOT NULL,
+    created_at    TIMESTAMP NULL,
+    updated_at    TIMESTAMP NULL,
+    INDEX         idx_restriction_code (promo_code),
+    INDEX         idx_restriction_type (discount_type),
+    INDEX         idx_valid_range (valid_from, valid_to),
+);
 
-## Code of Conduct
+CREATE TABLE oracle_promo_code_rates
+(
+    promo_code_id BIGINT UNSIGNED,
+    rate_id       BIGINT UNSIGNED,
+    hotel_id      BIGINT UNSIGNED,
+    PRIMARY KEY (promo_code_id, rate_id, hotel_id),
+    FOREIGN KEY (promo_code_id) REFERENCES oracle_promo_codes (id) ON DELETE CASCADE,
+    FOREIGN KEY (rate_id) REFERENCES oracle_rates (id) ON DELETE CASCADE,
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE
+);
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+CREATE TABLE custom_room_restrictions
+(
+    id                 BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hotel_id           BIGINT UNSIGNED,
+    room_type_id       BIGINT UNSIGNED,
+    max_adults         INT NULL,
+    max_children       INT NULL,
+    children_allowed   BOOL DEFAULT TRUE,
+    max_guests         INT NULL,
+    closure_start_date DATE NULL,
+    closure_end_date   DATE NULL,
+    created_at         TIMESTAMP NULL,
+    updated_at         TIMESTAMP NULL,
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE,
+    INDEX              idx_date (date),
+    INDEX              idx_children_allowed (children_allowed),
+    INDEX              idx_closure_date_range (closure_start_date, closure_end_date),
+);
 
-## Security Vulnerabilities
+CREATE TABLE price_modifiers
+(
+    id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hotel_id      BIGINT UNSIGNED,
+    rate_id       BIGINT UNSIGNED,
+    date          DATE           NOT NULL,
+    modifier_type ENUM('per_guest', 'per_room') NOT NULL,
+    operation     ENUM('add', 'subtract') NOT NULL,
+    price         DECIMAL(10, 2) NOT NULL,
+    created_at    TIMESTAMP NULL,
+    updated_at    TIMESTAMP NULL,
+    FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
+    FOREIGN KEY (rate_id) REFERENCES oracle_rates (id) ON DELETE CASCADE,
+    INDEX         idx_date (date),
+    INDEX         idx_modifier_type (modifier_type),
+    INDEX         idx_operation (operation),
+);
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```
+</details>
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 2. Handling the availability search request:
