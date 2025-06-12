@@ -10,6 +10,7 @@ class OraclePromoCode extends Model
         'promo_code',
         'name',
         'discount_type',
+        'discount_value',
         'valid_from',
         'valid_to',
     ];
