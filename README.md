@@ -156,8 +156,8 @@ CREATE TABLE oracle_promo_codes
     valid_to      DATE                NOT NULL,
     created_at    TIMESTAMP NULL,
     updated_at    TIMESTAMP NULL,
-    INDEX         idx_restriction_code (promo_code),
-    INDEX         idx_restriction_type (discount_type),
+    INDEX         idx_promo_code (promo_code),
+    INDEX         idx_discount_type (discount_type),
     INDEX         idx_valid_range (valid_from, valid_to),
 );
 
@@ -187,7 +187,6 @@ CREATE TABLE custom_room_restrictions
     updated_at         TIMESTAMP NULL,
     FOREIGN KEY (hotel_id) REFERENCES oracle_hotels (id) ON DELETE CASCADE,
     FOREIGN KEY (room_type_id) REFERENCES oracle_roomtypes (id) ON DELETE CASCADE,
-    INDEX              idx_date (date),
     INDEX              idx_children_allowed (children_allowed),
     INDEX              idx_closure_date_range (closure_start_date, closure_end_date),
 );
