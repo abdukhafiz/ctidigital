@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'oracle' => [
+        'base_url' => env('ORACLE_BASE_URL'),
+        'client_id' => env('ORACLE_CLIENT_ID'),
+        'client_secret' => env('ORACLE_CLIENT_SECRET'),
+        'username' => env('ORACLE_USERNAME'),
+        'password' => env('ORACLE_PASSWORD'),
+    ],
+
 ];
