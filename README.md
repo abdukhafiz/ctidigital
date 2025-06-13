@@ -2,6 +2,13 @@
 
 ---
 
+## Solutions
+
+### Problem 1 — the detailed solution can be found in [docs/problem-1-solution.md](docs/problem-1-solution.md)
+### Database schema can be found in [docs/database-schema.md](docs/database-schema.md)
+
+---
+
 ## Tech Stack Context
 
 * **MySQL version:** 8.0.39
